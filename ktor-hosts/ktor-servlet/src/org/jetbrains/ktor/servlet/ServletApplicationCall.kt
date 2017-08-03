@@ -16,7 +16,7 @@ open class ServletApplicationCall(application: Application,
                                   protected val servletRequest: HttpServletRequest,
                                   protected val servletResponse: HttpServletResponse,
                                   override val bufferPool: ByteBufferPool,
-                                  pushImpl: (ApplicationCall, ResponsePushBuilder.() -> Unit, () -> Unit) -> Unit,
+                                  pushImpl: (ResponsePushBuilder) -> Boolean,
                                   val hostContext: CoroutineContext,
                                   val userAppContext: CoroutineContext) : BaseApplicationCall(application) {
 
@@ -29,7 +29,7 @@ open class ServletApplicationCall(application: Application,
     protected var responseChannelOverride: WriteChannel? = null
 
     @Volatile
-    var completed: Boolean = false
+    private var completed: Boolean = false
 
     suspend override fun respondUpgrade(upgrade: FinalContent.ProtocolUpgrade) {
         servletResponse.status = upgrade.status?.value ?: HttpStatusCode.SwitchingProtocols.value
@@ -86,7 +86,6 @@ open class ServletApplicationCall(application: Application,
             if (wc == null) {
                 throw IllegalArgumentException("Upgrade processing requires WebConnection instance")
             }
-            val call = up.call
 
             val inputChannel = ServletReadChannel(wc.inputStream)
             val outputChannel = ServletWriteChannel(wc.outputStream)

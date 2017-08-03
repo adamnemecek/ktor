@@ -1,6 +1,5 @@
 package org.jetbrains.ktor.servlet
 
-import org.jetbrains.ktor.application.*
 import org.jetbrains.ktor.host.*
 import org.jetbrains.ktor.http.*
 import org.jetbrains.ktor.response.*
@@ -8,7 +7,7 @@ import javax.servlet.http.*
 
 class ServletApplicationResponse(call: ServletApplicationCall,
                                  val servletResponse: HttpServletResponse,
-                                 val pushImpl: (ApplicationCall, ResponsePushBuilder.() -> Unit, () -> Unit) -> Unit
+                                 private val pushImpl: (ResponsePushBuilder) -> Boolean
 ) : BaseApplicationResponse(call) {
     override fun setStatus(statusCode: HttpStatusCode) {
         servletResponse.status = statusCode.value
@@ -23,7 +22,9 @@ class ServletApplicationResponse(call: ServletApplicationCall,
         override fun getHostHeaderValues(name: String): List<String> = servletResponse.getHeaders(name).toList()
     }
 
-    override fun push(block: ResponsePushBuilder.() -> Unit) {
-        pushImpl(call, block, { super.push(block) })
+    override fun push(builder: ResponsePushBuilder) {
+        if (!pushImpl(builder)) {
+            super.push(builder)
+        }
     }
 }
